@@ -7,7 +7,7 @@
       <field name="model">biblioteca.libro</field>
       <field name="arch" type="xml">
         <list>
-          <field name="name"/>
+          <field name="firstname"/>
           <field name="value"/>
           <field name="value2"/>
         </list>
@@ -27,6 +27,7 @@
           <field name="description"/>
           </group>
         </form>
+      </field>
     </record>
 
     <record model="ir.ui.view" id="biblioteca_autor_list">
@@ -44,11 +45,11 @@
       <field name="name">biblioteca autor form</field>
       <field name="model">biblioteca.autor</field>
       <field name="arch" type="xml">
-        <list>
+        <form>
           <group>
           <field name="firstname"/>
           <field name="lastname"/>
-        </group>
+          </group>
         </form>
       </field>
     </record>
@@ -87,16 +88,16 @@
 
     <!-- Top menu item -->
 
-    <menuitem name="biblioteca" id="biblioteca.menu_root"/>
+    <menuitem name="biblioteca" id="biblioteca_menu"/>
 
     <menuitem name="Libro menu"
-    id="biblioteca.libro"
-    parent="biblioteca.biblioteca_menu"
+    id="biblioteca_libro_menu"
+    parent="biblioteca_menu"
     action="biblioteca_libro_action_window"/>
 
     <menuitem name="Autor menu"
-    id="biblioteca.autor"
-    parent="biblioteca.biblioteca_menu"
+    id="biblioteca_autor_"
+    parent="biblioteca_menu"
     action="biblioteca_autor_action_window"/>
 
     <!-- menu categories -->
