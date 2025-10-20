@@ -1,7 +1,10 @@
 from odoo import models, fields, api
 from datetime import datetime, timedelta
 from odoo.exceptions import ValidationError
+import requests
+import logging
 
+_logger = logging.getLogger(__name__)
 
 class Libro(models.Model):
     _name = 'biblioteca.libro'
@@ -9,17 +12,81 @@ class Libro(models.Model):
     _rec_name = 'firstname'
     
     firstname = fields.Char(string='Nombre Libro', required=True)
-    author = fields.Many2one('biblioteca.autor', string='Autor Libro', required=True)
+    author = fields.Many2one('biblioteca.autor', string='Autor Libro')
     isbn = fields.Char(string='ISBN')
     value = fields.Integer(string='Número de Ejemplares')
     value2 = fields.Float(compute="_value_pc", store=True, string='Valor Computado')
     description = fields.Text(string='Descripción')
+    openlibrary_description = fields.Text(string='Descripción (Open Library)')
 
     @api.depends('value')
     def _value_pc(self):
         for record in self:
             record.value2 = float(record.value) / 100 if record.value else 0.0
 
+    @api.onchange('isbn')
+    def _onchange_isbn_fetch_data(self):
+        if self.isbn:
+            
+            url = f"https://openlibrary.org/api/books?bibkeys=ISBN:{self.isbn}&format=json&jscmd=data"
+            
+            try:
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                
+                book_key = f"ISBN:{self.isbn}"
+                
+                if book_key in data:
+                    book_info = data[book_key]
+                    
+
+                    title = book_info.get('title')
+                    if title:
+                        self.firstname = title
+
+                    author_name = False
+                    authors = book_info.get('authors')
+                    if authors and isinstance(authors, list):
+                        # Asume el primer autor de la lista
+                        author_name = authors[0].get('name') 
+
+                    if author_name:
+                        
+                        AuthorModel = self.env['biblioteca.autor']
+                        author_record = AuthorModel.search([('name', '=', author_name)], limit=1)
+                        
+                        if not author_record:
+                            # Si no existe, lo crea
+                            author_record = AuthorModel.create({'name': author_name})
+
+                        self.author = author_record.id
+
+
+                    description = book_info.get('details', {}).get('excerpts', [{}])[0].get('text')
+                    if not description:
+                        
+                        description = book_info.get('notes')
+                    
+                    if description:
+                        self.openlibrary_description = description
+                    else:
+                        self.openlibrary_description = "No se encontró descripción detallada en Open Library."
+                        
+                    _logger.info(f"Datos de Open Library obtenidos con éxito para ISBN: {self.isbn}")
+                else:
+                    self.openlibrary_description = f"ISBN {self.isbn} no encontrado en Open Library."
+                    
+            except requests.exceptions.RequestException as e:
+                self.openlibrary_description = "Error al conectar con Open Library. Verifique la conexión."
+                _logger.error(f"Error en la petición a Open Library: {e}")
+            except Exception as e:
+                self.openlibrary_description = "Error al procesar los datos de Open Library o al gestionar el autor."
+                _logger.error(f"Error general: {e}")
+        else:
+            self.openlibrary_description = False
+            self.firstname = False
+            self.author = False
 
 class Autor(models.Model):
     _name = 'biblioteca.autor'
