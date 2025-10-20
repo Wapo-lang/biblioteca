@@ -1,5 +1,6 @@
 from odoo import models, fields, api
 from datetime import datetime, timedelta
+from odoo.exceptions import ValidationError
 
 
 class Libro(models.Model):
@@ -76,3 +77,51 @@ class BibliotecaPrestamos(models.Model):
         for record in self:
             record.fecha_max=record.fecha_prestamo + timedelta(days=2)
 
+class CedulaEcuador(models.Model):
+    _name = 'biblioteca.cedula'
+    _description = 'Verificador de Cédula Ecuatoriana'
+    _rec_name = 'cedula'
+
+    cedula = fields.Char(string='Cédula', required=True)
+    es_valida = fields.Boolean(string='Cédula válida', compute='_compute_validez', store=True)
+    mensaje = fields.Char(string='Mensaje de validación', compute='_compute_validez', store=True)
+
+    @api.depends('cedula')
+    def _compute_validez(self):
+        for rec in self:
+            valido, msg = self._validar_cedula_ecuador(rec.cedula or '')
+            rec.es_valida = valido
+            rec.mensaje = msg
+
+    @staticmethod
+    def _validar_cedula_ecuador(cedula: str):
+        cedula = (cedula or '').strip()
+        if not cedula.isdigit():
+            return False, "La cédula debe contener solo dígitos."
+        if len(cedula) != 10:
+            return False, "La cédula debe tener 10 dígitos."
+        prov = int(cedula[:2])
+        if prov < 1 or prov > 24:
+            return False, "Código de provincia inválido."
+        tercer = int(cedula[2])
+        if tercer >= 6:
+            return False, "Tercer dígito inválido para cédula natural."
+        digitos = list(map(int, cedula))
+        coef = [2, 1, 2, 1, 2, 1, 2, 1, 2]
+        total = 0
+        for i in range(9):
+            prod = digitos[i] * coef[i]
+            if prod >= 10:
+                prod -= 9
+            total += prod
+        dig_verificador = (10 - (total % 10)) % 10
+        if dig_verificador == digitos[9]:
+            return True, "Cédula válida."
+        return False, "Dígito verificador inválido."
+
+    @api.constrains('cedula')
+    def _check_cedula(self):
+        for rec in self:
+            valido, msg = self._validar_cedula_ecuador(rec.cedula or '')
+            if not valido:
+                raise ValidationError(msg)
