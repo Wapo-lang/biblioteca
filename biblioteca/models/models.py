@@ -100,8 +100,8 @@ class Autor(models.Model):
     def _compute_display(self):
         for record in self:
             record.display_name = f"{record.firstname} {record.lastname}"
-
-
+   
+          
 class BibliotecaMulta(models.Model):
     _name='biblioteca.multa'
     _description='biblioteca.multa'
@@ -112,8 +112,8 @@ class BibliotecaMulta(models.Model):
                                         ('perdida','Perdida')],string='Causa de la multa')
     pago=fields.Selection(selection=[('pendiente','Pendiente'),
                                      ('saldada','Saldada')],string='Pago de la multa')
-    
-    
+  
+       
 class BibliotecaPrestamos(models.Model):
     _name= 'biblioteca.prestamo'
     _description='biblioteca.prestamo'
@@ -143,6 +143,18 @@ class BibliotecaPrestamos(models.Model):
     def _compute_fecha_devo(self):
         for record in self:
             record.fecha_max=record.fecha_prestamo + timedelta(days=2)
+            
+def _cron_multas(self):
+    prestamos = self.env['biblioteca.prestamo'].search([('estado', '=', 'p'), 
+                                                       ('fecha_max', '<', datetime.now())])
+    
+    for prestamo in prestamos:
+        prestamo.write({'estado': 'm', 'multa_bol': True, 'multa': 1.0})
+    prestamos = self.env['biblioteca.prestamo'].search([('estado','=', 'm')])
+    for prestamo in prestamos:
+        days = (datetime.now() - prestamo.fecha_max).days
+        prestamo.write({'multa': days,})
+        
 
 class CedulaEcuador(models.Model):
     _name = 'biblioteca.cedula'

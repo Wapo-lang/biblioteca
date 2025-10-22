@@ -6,15 +6,17 @@
       <field name="name">biblioteca libro list</field>
       <field name="model">biblioteca.libro</field>
       <field name="arch" type="xml">
-        <list>
+        <tree>
           <field name="firstname"/>
           <field name="author"/>
           <field name="isbn"/>
           <field name="value"/>
           <field name="value2"/>
-        </list>
+          <field name="openlibrary_description"/> 
+        </tree>
       </field>
     </record>
+
 
     <record model="ir.ui.view" id="biblioteca_libro_form">
       <field name="name">biblioteca libro form</field>
@@ -22,16 +24,18 @@
       <field name="arch" type="xml">
         <form>
           <group>
-          <field name="firstname"/>
-          <field name="author"/>
-          <field name="isbn"/>
-          <field name="value"/>
-          <field name="value2"/>
-          <field name="description"/>
+            <field name="firstname"/>
+            <field name="author"/>
+            <field name="isbn"/>
+            <field name="value"/>
+            <field name="value2"/>
+            <field name="description"/>
+            <field name="openlibrary_description"/>
           </group>
-        </form>
+       </form>
       </field>
     </record>
+
 
     <record model="ir.ui.view" id="biblioteca_autor_list">
       <field name="name">biblioteca autor form</field>
