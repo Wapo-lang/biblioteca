@@ -6,14 +6,14 @@
       <field name="name">biblioteca libro list</field>
       <field name="model">biblioteca.libro</field>
       <field name="arch" type="xml">
-        <tree>
+        <list>
           <field name="firstname"/>
           <field name="author"/>
           <field name="isbn"/>
           <field name="value"/>
           <field name="value2"/>
           <field name="openlibrary_description"/> 
-        </tree>
+        </list>
       </field>
     </record>
 
@@ -62,7 +62,7 @@
     </record>
 
     <record model ="ir.ui.view" id="biblioteca_prestamo_list">
-      <field name ="name">biblioteca prestamo list</field>
+      <field name ="name">biblioteca prestamo list</field>  
       <field name ="model">biblioteca.prestamo</field>
       <field name ="arch" type="xml">
         <list>
@@ -132,6 +132,7 @@
 
 
 
+
     <!-- actions opening views on models -->
 
     <record model="ir.actions.act_window" id="biblioteca_libro_action_window">
@@ -163,6 +164,7 @@
       <field name="res_model">biblioteca.cedula</field>
       <field name="view_mode">list,form</field>
     </record>
+
 
 
     <!-- server action to the one above -->

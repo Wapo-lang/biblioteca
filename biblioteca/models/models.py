@@ -1,8 +1,10 @@
 from odoo import models, fields, api
 from datetime import datetime, timedelta
 from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError
 import requests
 import logging
+
 
 _logger = logging.getLogger(__name__)
 
@@ -204,3 +206,4 @@ class CedulaEcuador(models.Model):
             valido, msg = self._validar_cedula_ecuador(rec.cedula or '')
             if not valido:
                 raise ValidationError(msg)
+
