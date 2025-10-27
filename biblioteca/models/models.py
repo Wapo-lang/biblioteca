@@ -47,35 +47,27 @@ class Libro(models.Model):
                     if title:
                         self.firstname = title
 
-                    author_name = False
+                    author_name = None
                     authors = book_info.get('authors')
                     if authors and isinstance(authors, list):
-                        # Asume el primer autor de la lista
-                        author_name = authors[0].get('name') 
-
+                        author_name = authors[0].get('name')
                     if author_name:
-                        
                         AuthorModel = self.env['biblioteca.autor']
-                        author_record = AuthorModel.search([('name', '=', author_name)], limit=1)
-                        
+                        author_record = AuthorModel.search([('firstname', '=', author_name)], limit=1)
                         if not author_record:
-                            # Si no existe, lo crea
-                            author_record = AuthorModel.create({'name': author_name})
-
+                            author_record = AuthorModel.create({'firstname': author_name, 'lastname': ''})
                         self.author = author_record.id
 
 
-                    description = book_info.get('details', {}).get('excerpts', [{}])[0].get('text')
-                    if not description:
-                        
-                        description = book_info.get('notes')
-                    
-                    if description:
-                        self.openlibrary_description = description
-                    else:
-                        self.openlibrary_description = "No se encontró descripción detallada en Open Library."
-                        
-                    _logger.info(f"Datos de Open Library obtenidos con éxito para ISBN: {self.isbn}")
+                    description = None
+                    if 'description' in book_info:
+                        if isinstance(book_info['description'], dict):
+                            description = book_info['description'].get('value')
+                        else:
+                            description = book_info['description']
+                    elif 'notes' in book_info:
+                        description = book_info['notes']
+                    self.openlibrary_description = description or "No se encontró descripción detallada en Open Library."
                 else:
                     self.openlibrary_description = f"ISBN {self.isbn} no encontrado en Open Library."
                     
@@ -114,6 +106,39 @@ class BibliotecaMulta(models.Model):
                                         ('perdida','Perdida')],string='Causa de la multa')
     pago=fields.Selection(selection=[('pendiente','Pendiente'),
                                      ('saldada','Saldada')],string='Pago de la multa')
+    
+class BibliotecaUsuario(models.Model):
+    _name = 'biblioteca.usuario'
+    _description = 'Gestión de Usuarios de la Biblioteca'
+    _rec_name = 'nombre_completo'
+
+    nombre = fields.Char(string='Nombre', required=True)
+    apellido = fields.Char(string='Apellido', required=True)
+    cedula = fields.Char(string='Cédula', required=True)
+    telefono = fields.Char(string='Teléfono')
+    correo = fields.Char(string='Correo electrónico')
+    direccion = fields.Char(string='Dirección')
+    nombre_completo = fields.Char(string='Nombre completo', compute='_compute_nombre_completo', store=True)
+
+    @api.depends('nombre', 'apellido')
+    def _compute_nombre_completo(self):
+        for record in self:
+            record.nombre_completo = f"{record.nombre} {record.apellido}"
+
+    @api.constrains('correo')
+    def _check_correo(self):
+        for rec in self:
+            if rec.correo and '@' not in rec.correo:
+                raise ValidationError('Ingrese un correo electrónico válido.')
+
+    @api.constrains('cedula')
+    def _check_cedula(self):
+        for rec in self:
+            # Puedes reutilizar el validador de cédula de tu clase CedulaEcuador
+            valido, msg = CedulaEcuador._validar_cedula_ecuador(rec.cedula or '')
+            if not valido:
+                raise ValidationError(f'Cédula: {msg}')
+
   
        
 class BibliotecaPrestamos(models.Model):
@@ -121,6 +146,7 @@ class BibliotecaPrestamos(models.Model):
     _description='biblioteca.prestamo'
     _rec_name='fecha_max'
     name=fields.Char(required=True)
+    usuario = fields.Many2one('biblioteca.usuario', string='Usuario', required=True)
     fecha_prestamo=fields.Datetime(default=datetime.now(),string='Fecha de prestamo' )
     libro= fields.Many2one('biblioteca.libro',string='Titulo de libro')
     fecha_devolucion=fields.Datetime()
