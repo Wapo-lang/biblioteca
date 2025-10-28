@@ -166,6 +166,38 @@
       </field>
     </record>
 
+    <record id="view_biblioteca_multa_list" model="ir.ui.view">
+      <field name="name">biblioteca multa list</field>
+      <field name="model">biblioteca.multa</field>
+      <field name="arch" type="xml">
+        <list>
+            <field name="codigo_multa"/>
+            <field name="usuario"/>
+            <field name="causa"/>
+            <field name="monto"/>
+            <field name="estado_pago"/>
+        </list>
+      </field>
+    </record>
+
+    <record id="view_biblioteca_multa_form" model="ir.ui.view">
+      <field name="name">biblioteca multa form</field>
+      <field name="model">biblioteca.multa</field>
+      <field name="arch" type="xml">
+        <form>
+            <group>
+                <field name="codigo_multa"/>
+                <field name="usuario"/>
+                <field name="causa"/>
+                <field name="monto"/>
+                <field name="estado_pago"/>
+            </group>
+        </form>
+      </field>
+    </record>
+
+
+
 
 
 
@@ -244,10 +276,11 @@
     parent="biblioteca_menu"
     action="biblioteca_prestamo_action_window"/>
 
-    <menuitem name="Multa menu"
-    id="biblioteca_multa_"
-    parent="biblioteca_menu"
+    <menuitem id="biblioteca_multa" 
+    name="Multa" 
+    parent="biblioteca_menu" 
     action="biblioteca_multa_action_window"/>
+
 
     <menuitem name="Cédulas" 
     id="biblioteca_cedula_menu"

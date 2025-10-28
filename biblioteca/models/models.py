@@ -97,15 +97,32 @@ class Autor(models.Model):
    
           
 class BibliotecaMulta(models.Model):
-    _name='biblioteca.multa'
-    _description='biblioteca.multa'
-    codigo_multa=fields.Char(string='Código de la multa')
-    monto=fields.Float(string='Valor a pagar')
-    motivo=fields.Selection(selection=[('retraso','Retraso'),
-                                        ('daño','Daño'),
-                                        ('perdida','Perdida')],string='Causa de la multa')
-    pago=fields.Selection(selection=[('pendiente','Pendiente'),
-                                     ('saldada','Saldada')],string='Pago de la multa')
+    _name = 'biblioteca.multa'
+    _description = 'Multas de la Biblioteca'
+
+    codigo_multa = fields.Char(string='Código de la Multa', required=True)
+    usuario = fields.Many2one('biblioteca.usuario', string='Usuario', required=True)
+    causa = fields.Selection([
+        ('retraso', 'Retraso'),
+        ('daño', 'Daño'),
+        ('perdida', 'Pérdida'),
+        ('otros', 'Otros'),  # Nueva opción
+    ], string='Causa de la Multa', required=True)
+    causa_otros = fields.Text(string='Especifique por favor: ')  
+    monto = fields.Float(string='Monto a Pagar', required=True)
+    estado_pago = fields.Selection([
+        ('pendiente', 'Pendiente'),
+        ('saldada', 'Saldada')
+    ], string='Estado de Pago', default='pendiente', required=True)
+
+    @api.onchange('causa')
+    def _onchange_causa(self):
+        if self.causa != 'otros':
+            self.causa_otros = False
+
+
+
+
     
 class BibliotecaUsuario(models.Model):
     _name = 'biblioteca.usuario'
