@@ -95,13 +95,14 @@
 
 
 
-    <record model ="ir.ui.view" id="biblioteca_prestamo_list">
-      <field name ="name">biblioteca prestamo list</field>  
-      <field name ="model">biblioteca.prestamo</field>
-      <field name ="arch" type="xml">
+    <record id="biblioteca_prestamo_list" model="ir.ui.view">
+      <field name="name">biblioteca.prestamo.list</field>
+      <field name="model">biblioteca.prestamo</field>
+      <field name="arch" type="xml">
         <list>
-          <field name="libro"/>
+          <field name="name" string="Código"/>
           <field name="usuario"/>
+          <field name="libro"/>
           <field name="fecha_prestamo"/>
           <field name="fecha_devolucion"/>
           <field name="estado"/>
@@ -112,33 +113,44 @@
       </field>
     </record>
 
-
-    <record model ="ir.ui.view" id="biblioteca_prestamo_form">
-      <field name ="name">biblioteca prestamo form</field>
-      <field name ="model">biblioteca.prestamo</field>
-      <field name ="arch" type="xml">
+    <record id="biblioteca_prestamo_form" model="ir.ui.view">
+      <field name="name">biblioteca.prestamo.form</field>
+      <field name="model">biblioteca.prestamo</field>
+      <field name="arch" type="xml">
         <form>
           <header>
-            <button string="Prestar" type="object" name="generar_prestamo"
-            invisible="estado in ('p','d','m')"/>
-            <field name="estado" widget='statusbar'/>
+            <button string="Prestar" 
+                    type="object" 
+                    name="generar_prestamo"
+                    modifiers='{"invisible": [["estado", "in", ["p","d","m"]]]}'/>
+            <field name="estado" widget="statusbar" readonly="True"/>
           </header>
-              <group>
-              <field name="usuario" readonly="estado in ('p','d','m')"/>
-              <label for="name" string="Codigo de prestamo"/>
-              <field name="name" readonly="estado in ('p','d','m')" nolabel="1"/>
-              <field name="libro" readonly="estado in ('p','d','m')"/>
-              <field name="fecha_prestamo" readonly="estado in ('p','d','m')" />
-              <field name="fecha_devolucion" readonly="estado in ('p','d','m')" required="estado in ('p','m')"/>
-              <field name="estado" readonly="estado in ('p','d','m')"/>
-              <field name="multa_bol" readonly="estado in ('p','d','m')"/>
-              <field name="multa" readonly="estado in ('p','d','m')" invisible="multa_bol ==False"/>
-              <field name="fecha_max" readonly="estado in ('p','d','m')"/>
-              <field name="personal" readonly="estado in ('p','d','m')"/>
-              </group>
+          <sheet>
+            <group>
+              <field name="usuario" modifiers='{"readonly": [["estado", "in", ["p","d","m"]]]}'/>
+              <label for="name" string="Código de préstamo"/>
+              <field name="name" nolabel="1"/>
+              <field name="libro" modifiers='{"readonly": [["estado", "in", ["p","d","m"]]]}'/>
+              <field name="fecha_prestamo" modifiers='{"readonly": [["estado", "in", ["p","d","m"]]]}'/>
+              <field name="fecha_devolucion" 
+                    modifiers='{"readonly": [["estado", "in", ["p","d","m"]]], "required": true}'/>
+              <field name="fecha_max" modifiers='{"readonly": [["estado", "in", ["p","d","m"]]]}'/>
+              <field name="personal" modifiers='{"readonly": [["estado", "in", ["p","d","m"]]]}'/>
+            </group>
+            <group string="Multas y tipo">
+              <field name="multa_bol" readonly="True"/>
+              <field name="multa" 
+                    modifiers='{"readonly": [["estado", "!=", "m"]], "invisible": [["multa_bol", "=", false]]}'/>
+              <field name="tipo_multa" modifiers='{"readonly": [["estado", "in", ["p","d","m"]]]}'/>
+              <field name="multa_otro_tipo" 
+                    modifiers='{"invisible": [["tipo_multa", "!=", "otros"]]}' 
+                    placeholder="Especificar tipo de multa"/>
+            </group>
+          </sheet>
         </form>
       </field>
     </record>
+
 
     <record model="ir.ui.view" id="biblioteca_cedula_list">
       <field name="name">biblioteca cedula list</field>
@@ -166,41 +178,37 @@
       </field>
     </record>
 
-    <record id="view_biblioteca_multa_list" model="ir.ui.view">
-      <field name="name">biblioteca multa list</field>
+    <record id="biblioteca_multa_list" model="ir.ui.view">
+      <field name="name">biblioteca.multa.list</field>
       <field name="model">biblioteca.multa</field>
       <field name="arch" type="xml">
         <list>
-            <field name="codigo_multa"/>
-            <field name="usuario"/>
-            <field name="causa"/>
-            <field name="monto"/>
-            <field name="estado_pago"/>
+          <field name="prestamo_id" string="Préstamo"/>
+          <field name="monto" string="Monto"/>
+          <field name="motivo" string="Motivo"/>
+          <field name="pago" string="Estado de pago"/>
         </list>
       </field>
     </record>
-
-    <record id="view_biblioteca_multa_form" model="ir.ui.view">
-      <field name="name">biblioteca multa form</field>
+    
+    <record id="biblioteca_multa_form" model="ir.ui.view">
+      <field name="name">biblioteca.multa.form</field>
       <field name="model">biblioteca.multa</field>
       <field name="arch" type="xml">
         <form>
+          <sheet>
             <group>
-                <field name="codigo_multa"/>
-                <field name="usuario"/>
-                <field name="causa"/>
-                <field name="monto"/>
-                <field name="estado_pago"/>
+              <field name="prestamo_id" string="Préstamo" required="True"/>
+              <field name="monto" string="Monto"/>
+              <field name="motivo" string="Motivo"/>
+              <field name="pago" string="Estado de pago"/>
             </group>
+          </sheet>
         </form>
       </field>
     </record>
 
-
-
-
-
-
+    
     <!-- actions opening views on models -->
 
     <record model="ir.actions.act_window" id="biblioteca_libro_action_window">

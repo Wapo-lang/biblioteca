@@ -98,27 +98,20 @@ class Autor(models.Model):
           
 class BibliotecaMulta(models.Model):
     _name = 'biblioteca.multa'
-    _description = 'Multas de la Biblioteca'
+    _description = 'Gestión de Multas'
 
-    codigo_multa = fields.Char(string='Código de la Multa', required=True)
-    usuario = fields.Many2one('biblioteca.usuario', string='Usuario', required=True)
-    causa = fields.Selection([
-        ('retraso', 'Retraso'),
-        ('daño', 'Daño'),
-        ('perdida', 'Pérdida'),
-        ('otros', 'Otros'),  # Nueva opción
-    ], string='Causa de la Multa', required=True)
-    causa_otros = fields.Text(string='Especifique por favor: ')  
-    monto = fields.Float(string='Monto a Pagar', required=True)
-    estado_pago = fields.Selection([
-        ('pendiente', 'Pendiente'),
-        ('saldada', 'Saldada')
-    ], string='Estado de Pago', default='pendiente', required=True)
+    prestamo_id = fields.Many2one('biblioteca.prestamo', string="Préstamo", required=True)
+    monto = fields.Float(string='Valor a pagar')
+    motivo = fields.Selection(selection=[('retraso','Retraso'),
+                                        ('daño','Daño'),
+                                        ('perdida','Perdida'),
+                                        ('otros','Otros')],
+                              string='Causa de la multa')
+    descripcion = fields.Char(string="Detalle multa")
+    pago = fields.Selection(selection=[('pendiente','Pendiente'),
+                                       ('saldada','Saldada')],
+                            string='Pago de la multa')
 
-    @api.onchange('causa')
-    def _onchange_causa(self):
-        if self.causa != 'otros':
-            self.causa_otros = False
 
 
 
@@ -156,50 +149,87 @@ class BibliotecaUsuario(models.Model):
             if not valido:
                 raise ValidationError(f'Cédula: {msg}')
 
-  
-       
 class BibliotecaPrestamos(models.Model):
-    _name= 'biblioteca.prestamo'
-    _description='biblioteca.prestamo'
-    _rec_name='fecha_max'
-    name=fields.Char(required=True)
-    usuario = fields.Many2one('biblioteca.usuario', string='Usuario', required=True)
-    fecha_prestamo=fields.Datetime(default=datetime.now(),string='Fecha de prestamo' )
-    libro= fields.Many2one('biblioteca.libro',string='Titulo de libro')
-    fecha_devolucion=fields.Datetime()
-    multa_bol=fields.Boolean(Default=False)
-    multa=fields.Float()
-    estado=fields.Selection([('b','Borrador'),('p','Prestado'),('m','Multa'),('d','Devuelto')]
-                           ,string='Estado', default='b')
-    personal=fields.Many2one('res.users',string='Persona que presto el libro',
-                            default=lambda self: self.env.uid)
-    fecha_max=fields.Datetime(compute='_compute_fecha_devo' ,string='Fecha Maxima de devolucion')
-   
-    def write(self,vals):
-       seq=self.env.ref('biblioteca.sequence_codigo_prestamos').next_by_code('biblioteca.prestamo')
-       vals ['name']=seq
-       return super(BibliotecaPrestamos,self).write(vals)
-   
+    _name = 'biblioteca.prestamo'
+    _description = 'biblioteca.prestamo'
+    _rec_name = 'fecha_max'
+
+    name = fields.Char(required=True)
+    usuario = fields.Many2one('biblioteca.usuario', string='Usuario', required=True,
+                              default=lambda self: self._default_usuario())
+    fecha_prestamo = fields.Datetime(default=datetime.now(), string='Fecha de préstamo')
+    libro = fields.Many2one('biblioteca.libro', string='Título de libro')
+    fecha_devolucion = fields.Datetime()
+    multa_bol = fields.Boolean(default=False)
+    multa = fields.Float()
+    estado = fields.Selection([
+        ('b', 'Borrador'),
+        ('p', 'Prestado'),
+        ('m', 'Multa'),
+        ('d', 'Devuelto')
+    ], string='Estado', default='b')
+    personal = fields.Many2one('res.users', string='Persona que prestó el libro',
+                               default=lambda self: self.env.uid)
+    fecha_max = fields.Datetime(compute='_compute_fecha_devo', string='Fecha Máxima de devolución')
+
+    tipo_multa = fields.Selection(
+        selection=[('perdida', 'Pérdida'),
+                   ('daño', 'Daño'),
+                   ('robo', 'Robo'),
+                   ('otros', 'Otros')],
+        string='Tipo de multa')
+
+    multa_otro_tipo = fields.Char(string='Especificar tipo de multa')
+
+    @api.model
+    def _default_usuario(self):
+        usuario = self.env['biblioteca.usuario'].search([('correo', '=', self.env.user.email)], limit=1)
+        return usuario.id if usuario else False
+
+    @api.onchange('tipo_multa')
+    def _onchange_tipo_multa(self):
+        if self.tipo_multa != 'otros':
+            self.multa_otro_tipo = False
+
+    def write(self, vals):
+        if 'name' not in vals or not vals['name']:
+            seq = self.env.ref('biblioteca.sequence_codigo_prestamos').next_by_code('biblioteca.prestamo')
+            vals['name'] = seq
+        return super(BibliotecaPrestamos, self).write(vals)
+
+    @api.model
+    def create(self, vals):
+        if isinstance(vals, list):  # En caso de creación múltiple
+            for val in vals:
+                if not val.get('name'):
+                    val['name'] = self.env.ref('biblioteca.sequence_codigo_prestamos').next_by_code('biblioteca.prestamo')
+            return super(BibliotecaPrestamos, self).create(vals)
+        else:  # Creación simple
+            if not vals.get('name'):
+                vals['name'] = self.env.ref('biblioteca.sequence_codigo_prestamos').next_by_code('biblioteca.prestamo')
+            return super(BibliotecaPrestamos, self).create(vals)
+
+
     def generar_prestamo(self):
-        print("Generando prestamo")
-        self.write({'estado':'p'}) 
-        
-    @api.depends('fecha_max' , 'fecha_prestamo' )
+        print("Generando préstamo")
+        self.write({'estado': 'p'})
+
+    @api.depends('fecha_prestamo')
     def _compute_fecha_devo(self):
         for record in self:
-            record.fecha_max=record.fecha_prestamo + timedelta(days=2)
-            
-def _cron_multas(self):
-    prestamos = self.env['biblioteca.prestamo'].search([('estado', '=', 'p'), 
-                                                       ('fecha_max', '<', datetime.now())])
-    
-    for prestamo in prestamos:
-        prestamo.write({'estado': 'm', 'multa_bol': True, 'multa': 1.0})
-    prestamos = self.env['biblioteca.prestamo'].search([('estado','=', 'm')])
-    for prestamo in prestamos:
-        days = (datetime.now() - prestamo.fecha_max).days
-        prestamo.write({'multa': days,})
-        
+            record.fecha_max = record.fecha_prestamo + timedelta(days=2)
+
+    def _cron_multas(self):
+        prestamos = self.env['biblioteca.prestamo'].search([
+            ('estado', '=', 'p'),
+            ('fecha_max', '<', datetime.now())
+        ])
+        for prestamo in prestamos:
+            prestamo.write({'estado': 'm', 'multa_bol': True, 'multa': 1.0})
+        prestamos = self.env['biblioteca.prestamo'].search([('estado', '=', 'm')])
+        for prestamo in prestamos:
+            days = (datetime.now() - prestamo.fecha_max).days
+            prestamo.write({'multa': days})
 
 class CedulaEcuador(models.Model):
     _name = 'biblioteca.cedula'
