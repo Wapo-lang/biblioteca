@@ -102,21 +102,17 @@ class BibliotecaMulta(models.Model):
 
     prestamo_id = fields.Many2one('biblioteca.prestamo', string="Préstamo", required=True)
     usuario = fields.Many2one('biblioteca.usuario', string='Usuario', related='prestamo_id.usuario', store=True, readonly=True)
-    monto = fields.Float(string='Valor a pagar', related='prestamo_id.multa', store=True, readonly=True)
+    monto = fields.Float(string='Valor a pagar')
     tipo_multa = fields.Selection(related='prestamo_id.tipo_multa', string='Tipo de multa', store=True, readonly=True)
     descripcion = fields.Char(string="Detalle multa")
     pago = fields.Selection(selection=[('pendiente','Pendiente'), ('saldada','Saldada')], string='Pago de la multa')
-    motivo = fields.Selection(selection=[('retraso','Retraso'),
-                                     ('daño','Daño'),
-                                     ('perdida','Perdida'),
-                                     ('otros','Otros')],
-                          string='Causa de la multa')
 
-
-
-
-
-
+    motivo = fields.Selection(selection=[
+        ('perdida','Pérdida'),
+        ('daño','Daño'),
+        ('robo', 'Robo'),
+        ('otros','Otros')
+    ], string='Causa de la multa')
 
     
 class BibliotecaUsuario(models.Model):
@@ -190,6 +186,16 @@ class BibliotecaPrestamos(models.Model):
 
     @api.onchange('tipo_multa')
     def _onchange_tipo_multa(self):
+        valores_tipos = {
+            'perdida': 30.0,
+            'daño': 25.0,
+            'robo': 20.0,
+            'otros': 0.0,
+        }
+        if self.tipo_multa in valores_tipos:
+            self.multa = valores_tipos[self.tipo_multa]
+        else:
+            self.multa = 0.0
         if self.tipo_multa != 'otros':
             self.multa_otro_tipo = False
 
@@ -210,24 +216,8 @@ class BibliotecaPrestamos(models.Model):
             if not vals.get('name'):
                 vals['name'] = self.env.ref('biblioteca.sequence_codigo_prestamos').next_by_code('biblioteca.prestamo')
             return super(BibliotecaPrestamos, self).create(vals)
-        
-    @api.onchange('tipo_multa')
-    def _onchange_tipo_multa_valor(self):
-        valores_tipos = {
-            'perdida': 30.0,
-            'daño': 25.0,
-            'robo': 20.0,
-            'otros': 0.0,
-        }
-        if self.tipo_multa in valores_tipos:
-            self.multa = valores_tipos[self.tipo_multa]
-        else:
-            self.multa = 0.0
-
-
 
     def generar_prestamo(self):
-        print("Generando préstamo")
         self.write({'estado': 'p'})
 
     @api.depends('fecha_prestamo')
@@ -242,10 +232,35 @@ class BibliotecaPrestamos(models.Model):
         ])
         for prestamo in prestamos:
             prestamo.write({'estado': 'm', 'multa_bol': True, 'multa': 1.0})
-        prestamos = self.env['biblioteca.prestamo'].search([('estado', '=', 'm')])
-        for prestamo in prestamos:
+        prestamos_con_multa = self.env['biblioteca.prestamo'].search([('estado', '=', 'm')])
+        for prestamo in prestamos_con_multa:
             days = (datetime.now() - prestamo.fecha_max).days
             prestamo.write({'multa': days})
+
+    def asignar_multa(self):
+        multa_model = self.env['biblioteca.multa']
+
+        if not self.tipo_multa:
+            raise UserError("Debe seleccionar el tipo de multa para asignar.")
+
+        multas_existentes = multa_model.search([
+            ('prestamo_id', '=', self.id),
+            ('motivo', '=', self.tipo_multa)
+        ])
+        if multas_existentes:
+            raise UserError("Ya existe una multa asignada con este motivo para este préstamo.")
+
+        multa_model.create({
+            'prestamo_id': self.id,
+            'monto': self.multa,    
+            'motivo': self.tipo_multa,
+            'descripcion': self.multa_otro_tipo if self.tipo_multa == 'otros' else '',
+            'pago': 'pendiente',
+        })
+        self.write({'estado': 'm', 'multa_bol': True})
+
+        return True
+
 
 class CedulaEcuador(models.Model):
     _name = 'biblioteca.cedula'

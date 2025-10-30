@@ -119,11 +119,11 @@
       <field name="arch" type="xml">
         <form>
           <header>
-            <button string="Prestar" 
-                    type="object" 
-                    name="generar_prestamo"
+            <button string="Prestar" type="object" name="generar_prestamo"
                     modifiers='{"invisible": [["estado", "in", ["p","d","m"]]]}'/>
             <field name="estado" widget="statusbar" readonly="True"/>
+            <button name="asignar_multa" string="Asignar Multa" type="object" class="btn btn-danger"
+                    modifiers='{"invisible": [["|", ["estado", "!=", "p"], ["tipo_multa", "=", false]]]}'/>
           </header>
           <sheet>
             <group>
@@ -139,8 +139,8 @@
             </group>
             <group string="Multas y tipo">
               <field name="multa_bol" readonly="True"/>
-              <field name="multa" 
-                    modifiers='{"readonly": [["estado", "!=", "m"]], "invisible": [["multa_bol", "=", false]]}'/>
+              <field name="multa"
+                    modifiers='{"readonly": [["tipo_multa", "!=", "otros"]], "invisible": [["multa_bol", "=", false]]}'/>
               <field name="tipo_multa" modifiers='{"readonly": [["estado", "in", ["p","d","m"]]]}'/>
               <field name="multa_otro_tipo" 
                     modifiers='{"invisible": [["tipo_multa", "!=", "otros"]]}' 
@@ -150,6 +150,8 @@
         </form>
       </field>
     </record>
+
+
 
 
     <record model="ir.ui.view" id="biblioteca_cedula_list">
