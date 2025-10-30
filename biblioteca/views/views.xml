@@ -184,12 +184,14 @@
       <field name="arch" type="xml">
         <list>
           <field name="prestamo_id" string="Préstamo"/>
+          <field name="usuario" readonly="True"/>
           <field name="monto" string="Monto"/>
           <field name="motivo" string="Motivo"/>
           <field name="pago" string="Estado de pago"/>
         </list>
       </field>
     </record>
+
     
     <record id="biblioteca_multa_form" model="ir.ui.view">
       <field name="name">biblioteca.multa.form</field>
@@ -198,15 +200,19 @@
         <form>
           <sheet>
             <group>
-              <field name="prestamo_id" string="Préstamo" required="True"/>
-              <field name="monto" string="Monto"/>
-              <field name="motivo" string="Motivo"/>
-              <field name="pago" string="Estado de pago"/>
+              <field name="prestamo_id" required="True"/>
+              <field name="usuario" readonly="True"/>
+              <field name="monto" readonly="True"/>
+              <field name="tipo_multa" readonly="True"/>
+              <field name="descripcion"/>
+              <field name="pago"/>
             </group>
           </sheet>
         </form>
       </field>
     </record>
+
+
 
     
     <!-- actions opening views on models -->

@@ -101,16 +101,18 @@ class BibliotecaMulta(models.Model):
     _description = 'Gestión de Multas'
 
     prestamo_id = fields.Many2one('biblioteca.prestamo', string="Préstamo", required=True)
-    monto = fields.Float(string='Valor a pagar')
-    motivo = fields.Selection(selection=[('retraso','Retraso'),
-                                        ('daño','Daño'),
-                                        ('perdida','Perdida'),
-                                        ('otros','Otros')],
-                              string='Causa de la multa')
+    usuario = fields.Many2one('biblioteca.usuario', string='Usuario', related='prestamo_id.usuario', store=True, readonly=True)
+    monto = fields.Float(string='Valor a pagar', related='prestamo_id.multa', store=True, readonly=True)
+    tipo_multa = fields.Selection(related='prestamo_id.tipo_multa', string='Tipo de multa', store=True, readonly=True)
     descripcion = fields.Char(string="Detalle multa")
-    pago = fields.Selection(selection=[('pendiente','Pendiente'),
-                                       ('saldada','Saldada')],
-                            string='Pago de la multa')
+    pago = fields.Selection(selection=[('pendiente','Pendiente'), ('saldada','Saldada')], string='Pago de la multa')
+    motivo = fields.Selection(selection=[('retraso','Retraso'),
+                                     ('daño','Daño'),
+                                     ('perdida','Perdida'),
+                                     ('otros','Otros')],
+                          string='Causa de la multa')
+
+
 
 
 
@@ -199,15 +201,29 @@ class BibliotecaPrestamos(models.Model):
 
     @api.model
     def create(self, vals):
-        if isinstance(vals, list):  # En caso de creación múltiple
+        if isinstance(vals, list):
             for val in vals:
                 if not val.get('name'):
                     val['name'] = self.env.ref('biblioteca.sequence_codigo_prestamos').next_by_code('biblioteca.prestamo')
             return super(BibliotecaPrestamos, self).create(vals)
-        else:  # Creación simple
+        else:
             if not vals.get('name'):
                 vals['name'] = self.env.ref('biblioteca.sequence_codigo_prestamos').next_by_code('biblioteca.prestamo')
             return super(BibliotecaPrestamos, self).create(vals)
+        
+    @api.onchange('tipo_multa')
+    def _onchange_tipo_multa_valor(self):
+        valores_tipos = {
+            'perdida': 30.0,
+            'daño': 25.0,
+            'robo': 20.0,
+            'otros': 0.0,
+        }
+        if self.tipo_multa in valores_tipos:
+            self.multa = valores_tipos[self.tipo_multa]
+        else:
+            self.multa = 0.0
+
 
 
     def generar_prestamo(self):
