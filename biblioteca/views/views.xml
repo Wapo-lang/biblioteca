@@ -61,7 +61,7 @@
       </field>
     </record>
 
-    <record id="view_biblioteca_usuario_tree" model="ir.ui.view">
+    <record id="view_biblioteca_usuario_list" model="ir.ui.view">
       <field name="name">biblioteca.usuario.tree</field>
       <field name="model">biblioteca.usuario</field>
       <field name="arch" type="xml">
@@ -72,6 +72,7 @@
           <field name="telefono"/>
           <field name="correo"/>
           <field name="direccion"/>
+          <field name="estado_membresia"/>
         </list>
       </field>
     </record>
@@ -88,6 +89,7 @@
                 <field name="telefono"/>
                 <field name="correo"/>
                 <field name="direccion"/>
+                <field name="estado_membresia"/>
             </group>
         </form>
       </field>
@@ -139,8 +141,7 @@
             </group>
             <group string="Multas y tipo">
               <field name="multa_bol" readonly="True"/>
-              <field name="multa"
-                    modifiers='{"readonly": [["tipo_multa", "!=", "otros"]], "invisible": [["multa_bol", "=", false]]}'/>
+              <field name="multa" modifiers='{"readonly": [["tipo_multa", "!=", "otros"]], "invisible": [["multa_bol", "=", false]]}'/>
               <field name="tipo_multa" modifiers='{"readonly": [["estado", "in", ["p","d","m"]]]}'/>
               <field name="multa_otro_tipo" 
                     modifiers='{"invisible": [["tipo_multa", "!=", "otros"]]}' 

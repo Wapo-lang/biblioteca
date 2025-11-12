@@ -85,6 +85,7 @@ class Libro(models.Model):
 class Autor(models.Model):
     _name = 'biblioteca.autor'
     _description = 'Gestión de Autores'
+    _rec_name_ = 'firstname'
 
     firstname = fields.Char(string='Nombre', required=True)
     lastname = fields.Char(string='Apellido', required=True)
@@ -127,6 +128,32 @@ class BibliotecaUsuario(models.Model):
     correo = fields.Char(string='Correo electrónico')
     direccion = fields.Char(string='Dirección')
     nombre_completo = fields.Char(string='Nombre completo', compute='_compute_nombre_completo', store=True)
+    fecha_vencimiento = fields.Date(String ='Estado de la membresía')
+    estado_membresia = fields.Selection([
+        ('activa', 'Activa'),
+        ('vencida', 'Vencida'),
+        ('inactiva', 'Suspendida')
+        ], string = 'Estado de la Membresía', compute = '_compute_estado_membresia', store = True)
+        
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if 'fecha_vencimiento' not in vals:
+                fecha_actual = fields.Date.context_today(self)
+                vals['fecha_vencimiento'] = fecha_actual + timedelta(days=6*30)
+        return super().create(vals_list)
+
+    
+    @api.depends('fecha_vencimiento')
+    def _compute_estado_membresia(self):
+        hoy = fields.Date.today()
+        for rec in self:
+            if not rec.fecha_vencimiento:
+                rec.estado_membresia = 'inactiva'
+            elif rec.fecha_vencimiento >= hoy:
+                rec.estado_membresia = 'activa'
+            else:
+                rec.estado_membresia = 'vencida'
 
     @api.depends('nombre', 'apellido')
     def _compute_nombre_completo(self):
@@ -149,7 +176,7 @@ class BibliotecaUsuario(models.Model):
 
 class BibliotecaPrestamos(models.Model):
     _name = 'biblioteca.prestamo'
-    _description = 'biblioteca.prestamo'
+    _description = 'Modelo de manejo de prestamos'
     _rec_name = 'fecha_max'
 
     name = fields.Char(required=True)
@@ -233,6 +260,7 @@ class BibliotecaPrestamos(models.Model):
         for prestamo in prestamos:
             prestamo.write({'estado': 'm', 'multa_bol': True, 'multa': 1.0})
         prestamos_con_multa = self.env['biblioteca.prestamo'].search([('estado', '=', 'm')])
+        
         for prestamo in prestamos_con_multa:
             days = (datetime.now() - prestamo.fecha_max).days
             prestamo.write({'multa': days})
@@ -258,7 +286,6 @@ class BibliotecaPrestamos(models.Model):
             'pago': 'pendiente',
         })
         self.write({'estado': 'm', 'multa_bol': True})
-
         return True
 
 
@@ -310,4 +337,7 @@ class CedulaEcuador(models.Model):
             valido, msg = self._validar_cedula_ecuador(rec.cedula or '')
             if not valido:
                 raise ValidationError(msg)
+
+class Biblioteca(models.Model):
+    _name = ''
 
