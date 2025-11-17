@@ -16,10 +16,25 @@ class Libro(models.Model):
     firstname = fields.Char(string='Nombre Libro', required=True)
     author = fields.Many2one('biblioteca.autor', string='Autor Libro')
     isbn = fields.Char(string='ISBN')
-    value = fields.Integer(string='Número de Ejemplares')
+    value = fields.Integer(string='Número de Ejemplares', default = 1)
     value2 = fields.Float(compute="_value_pc", store=True, string='Valor Computado')
     description = fields.Text(string='Descripción')
     openlibrary_description = fields.Text(string='Descripción (Open Library)')
+    ejemplares_disponibles = fields.Integer(string='Ejemplares Disponibles', default=1)
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if 'value' in vals and 'ejemplares_disponibles' not in vals:
+                vals['ejemplares_disponibles'] = vals['value']
+        return super().create(vals_list)
+
+    @api.onchange('value')
+    def _onchange_value(self):
+        self.ejemplares_disponibles = self.value
+
+
+
 
     @api.depends('value')
     def _value_pc(self):
@@ -248,7 +263,14 @@ class BibliotecaPrestamos(models.Model):
             return super(BibliotecaPrestamos, self).create(vals)
 
     def generar_prestamo(self):
-        self.write({'estado': 'p'})
+        libro = self.libro
+        if libro.ejemplares_disponibles <= 0:
+            raise UserError(f"El libro '{libro.firstname}' no se encuentra en stock.")
+        else:
+            libro.ejemplares_disponibles -= 1
+            libro.write({'ejemplares_disponibles': libro.ejemplares_disponibles})
+            self.write({'estado': 'p'})  # marcar como prestado
+
 
     @api.depends('fecha_prestamo')
     def _compute_fecha_devo(self):
@@ -291,12 +313,13 @@ class BibliotecaPrestamos(models.Model):
         self.write({'estado': 'm', 'multa_bol': True})
         return True
     
-    def devolucion_libro(self):
-        self.write({
-            'estado': 'd',
-            'fecha_devolucion': datetime.now(),
-            'multa_bol': False
-        })
+    def devolver_libro(self):
+        self.write({'estado': 'd', 'fecha_devolucion': fields.Datetime.now()})
+        libro = self.libro
+        if libro and libro.ejemplares_disponibles is not None:
+            libro.ejemplares_disponibles += 1
+            libro.write({'ejemplares_disponibles': libro.ejemplares_disponibles})
+
 
 
 class CedulaEcuador(models.Model):
