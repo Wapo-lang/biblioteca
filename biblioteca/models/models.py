@@ -110,6 +110,7 @@ class BibliotecaMulta(models.Model):
 
     motivo = fields.Selection(selection=[
         ('perdida','Pérdida'),
+        ('retraso','Retraso'),
         ('daño','Daño'),
         ('robo', 'Robo'),
         ('otros','Otros')
@@ -199,6 +200,7 @@ class BibliotecaPrestamos(models.Model):
 
     tipo_multa = fields.Selection(
         selection=[('perdida', 'Pérdida'),
+                   ('retraso', 'Retraso'),
                    ('daño', 'Daño'),
                    ('robo', 'Robo'),
                    ('otros', 'Otros')],
@@ -215,6 +217,7 @@ class BibliotecaPrestamos(models.Model):
     def _onchange_tipo_multa(self):
         valores_tipos = {
             'perdida': 30.0,
+            'retraso': 10.0,
             'daño': 25.0,
             'robo': 20.0,
             'otros': 0.0,
@@ -287,6 +290,13 @@ class BibliotecaPrestamos(models.Model):
         })
         self.write({'estado': 'm', 'multa_bol': True})
         return True
+    
+    def devolucion_libro(self):
+        self.write({
+            'estado': 'd',
+            'fecha_devolucion': datetime.now(),
+            'multa_bol': False
+        })
 
 
 class CedulaEcuador(models.Model):
@@ -337,7 +347,3 @@ class CedulaEcuador(models.Model):
             valido, msg = self._validar_cedula_ecuador(rec.cedula or '')
             if not valido:
                 raise ValidationError(msg)
-
-class Biblioteca(models.Model):
-    _name = ''
-

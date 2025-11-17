@@ -126,6 +126,8 @@
             <field name="estado" widget="statusbar" readonly="True"/>
             <button name="asignar_multa" string="Asignar Multa" type="object" class="btn btn-danger"
                     modifiers='{"invisible": [["|", ["estado", "!=", "p"], ["tipo_multa", "=", false]]]}'/>
+            <button name="devolucion_libro" string="Devolver libro" type="object" class="btn btn-success"
+                    modifiers="{'invisible': [('estado', '=', 'd')]}" />
           </header>
           <sheet>
             <group>
